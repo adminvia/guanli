@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Screen Session</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        #terminal {
+            background-color: black;
+            color: white;
+            font-family: monospace;
+            padding: 10px;
+            height: 400px;
+            overflow-y: scroll;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Screen Session: {{ session_id }}</h1>
+        <div id="terminal" class="mb-3"></div>
+        <form id="command-form">
+            <div class="input-group">
+                <input type="text" class="form-control" id="command" placeholder="Enter command">
+                <button class="btn btn-primary" type="submit">Send</button>
+            </div>
+        </form>
+        <a href="/" class="btn btn-secondary mt-3">Back to Session List</a>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            const terminal = document.getElementById('terminal');
+            const eventSource = new EventSource('/stream/{{ session_id }}');
+
+            eventSource.onmessage = function(event) {
+                terminal.innerHTML += event.data;
+                terminal.scrollTop = terminal.scrollHeight;
+            };
+
+            eventSource.onerror = function(event) {
+                console.error('EventSource failed:', event);
+                eventSource.close();
+            };
+
+            $('#command-form').submit(function(e) {
+                e.preventDefault();
+                const command = $('#command').val();
+                $.post('/send_command/{{ session_id }}', {command: command}, function(response) {
+                    if (response.success) {
+                        $('#command').val('');
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
